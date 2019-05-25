@@ -68,8 +68,18 @@ def _go_genrule_impl(ctx):
         "export GOPATH=" + ctx.configuration.host_path_separator.join(["$$GO_GENRULE_EXECROOT/" + p for p in go_paths]),
         "export GOROOT=$$GO_GENRULE_EXECROOT/" + go.sdk.root_file.dirname,
         "export PATH=$$GO_GENRULE_EXECROOT/" + go.sdk.root_file.dirname + "/bin:$$PATH",
-        ctx.attr.cmd.strip(" \t\n\r"),
+        "export GOPREFIX=$$GOPATH/src/" + ctx.attr.go_prefix,
+        "cp " + " ".join(["$(location {})".format(p.label) for p in ctx.attr.tools]) + " $$GOROOT/bin/",
     ]
+
+    for f in ctx.attr.srcs:
+        cmd.append("mkdir -p $$(dirname $$GOPREFIX/{}/{}) && cp $(location {}) $$GOPREFIX/{}/{}".format(f.label.package, f.label.name, f.label, f.label.package, f.label.name))
+
+    cmd.append("cd $$GOPREFIX/{}".format(ctx.label.package))
+    cmd.append(ctx.attr.cmd.strip(" \t\n\r"))
+
+    for f in ctx.attr.outs:
+        cmd.append("cp {} $$GO_GENRULE_EXECROOT/$(location {})".format(f.name, f))
     resolved_inputs, argv, runfiles_manifests = ctx.resolve_command(
         command = "\n".join(cmd),
         attribute = "cmd",
@@ -113,6 +123,7 @@ _go_genrule = go_rule(
         "cmd": attr.string(mandatory = True),
         "go_paths": attr.label_list(),
         "go_deps": attr.label_list(providers = [GoLibrary]),
+        "go_prefix": attr.string(),
         "importpath": attr.string(),
         "message": attr.string(),
         "executable": attr.bool(default = False),
@@ -129,11 +140,12 @@ _go_genrule = go_rule(
 #
 # The command can access the generated GOPATH through the GOPATH
 # environment variable.
-def go_genrule(name, go_deps, **kw):
+# todo(mukerjee): Includes a default library or else go_path gets mad
+def go_genrule(name, go_deps=["//vendor/golang.org/x/time/rate:go_default_library"], go_mode="link", **kw):
     go_path_name = "%s~gopath" % name
     go_path(
         name = go_path_name,
-        mode = "link",
+        mode = go_mode,
         visibility = ["//visibility:private"],
         deps = go_deps,
     )
