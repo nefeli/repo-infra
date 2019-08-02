@@ -75,6 +75,7 @@ def _go_genrule_impl(ctx):
     for f in ctx.attr.srcs:
         cmd.append("mkdir -p $$(dirname $$GOPREFIX/{}/{}) && cp $(location {}) $$GOPREFIX/{}/{}".format(f.label.package, f.label.name, f.label, f.label.package, f.label.name))
 
+    cmd.append("mkdir -p $$GOPREFIX/{}".format(ctx.label.package))
     cmd.append("cd $$GOPREFIX/{}".format(ctx.label.package))
     cmd.append(ctx.attr.cmd.strip(" \t\n\r"))
 
