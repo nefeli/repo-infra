@@ -142,7 +142,7 @@ _go_genrule = go_rule(
 # The command can access the generated GOPATH through the GOPATH
 # environment variable.
 # todo(mukerjee): Includes a default library or else go_path gets mad
-def go_genrule(name, go_deps=["//vendor/golang.org/x/time/rate:go_default_library"], go_mode="link", **kw):
+def go_genrule(name, go_deps=["@vendor//vendor/golang.org/x/time/rate:go_default_library"], go_mode="link", **kw):
     go_path_name = "%s~gopath" % name
     go_path(
         name = go_path_name,
